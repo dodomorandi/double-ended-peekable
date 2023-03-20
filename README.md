@@ -20,10 +20,10 @@ conditions.
 However, this abstraction does not work well when you need to perform these
 operations from **both** the start and the end of a double-ended iterator. For
 instance, you cannot just do `.by_ref().rev().peekable().peek().next()` on the
-fly, because if this approach _seems_ to work, the implementation need to store
-the _next_ element (the corresponding of [`next_back`], to be clearer) inside
-the instance of `Peekable`, which means that the _peeked_ element is going to be
-dropped using the snippet just shown.
+fly, because even if this approach _seems_ to work, the implementation need to
+store the _next_ element (the corresponding of [`next_back`], to be clearer)
+inside the instance of `Peekable`, which means that the _peeked_ element is
+going to be dropped using the snippet just shown.
 
 ## How to use
 
@@ -53,7 +53,7 @@ implemented for types that implement [`DoubleEndedIterator`].
 
 ## Features
 
-- All the abstraction from [`Peekable`].
+- All the abstractions from [`Peekable`].
 - The `*_back_*` variants of the methods provided by [`Peekable`]:
 
   - [`next_back_if`]
@@ -61,14 +61,15 @@ implemented for types that implement [`DoubleEndedIterator`].
   - [`peek_back`]
   - [`peek_back_mut`]
 
-  All these methods works like their _front_ version, except they from the end
-  to the beginning of the iterator (just like [`DoubleEndedIterator`] does).
+  All these methods work like their _front_ version, except they operate from
+  the end to the beginning of the iterator (just like [`DoubleEndedIterator`]
+  does).
 - [`next_front_back_if`]: it advances both forward and backward _sides_ of the
-  iterator if a condition is satisfied. The condition is expressed by a function
-  that takes a reference to the _next_ and the _next-back_ elements and returns
-  a boolean, which indicated whether the _sides_ of the iterator need to be
-  advanced.
-- [`next_front_back_if_eq`]: similar to [`next_front_back_if`], excepts it
+  iterator if a condition is satisfied. The condition is expressed by a
+  function that takes a reference to the _next_ and the _next-back_ elements
+  and it returns a boolean, which indicates whether the _sides_ of the iterator
+  need to be advanced.
+- [`next_front_back_if_eq`]: similar to [`next_front_back_if`], except it
   directly takes the references to the _next_ and the _next-back_ elements
   instead of a function.
 
