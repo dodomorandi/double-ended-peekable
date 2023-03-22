@@ -63,7 +63,16 @@ use core::{
     hash::{Hash, Hasher},
 };
 
+/// An _extension trait_ to create [`DoubleEndedPeekable`].
+///
+/// This has a blanket implementation for all types that implement [`Iterator`].
 pub trait DoubleEndedPeekableExt<I: Iterator> {
+    /// Creates an iterator which works similarly to [`Peekable`], but also provides additional
+    /// functions if the underlying type implements [`DoubleEndedIterator`].
+    ///
+    /// See [`DoubleEndedPeekable`] for more information.
+    ///
+    /// [`Peekable`]: core::iter::Peekable
     fn double_ended_peekable(self) -> DoubleEndedPeekable<I>;
 }
 
