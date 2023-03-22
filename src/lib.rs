@@ -1,3 +1,58 @@
+//! A peekable abstraction for double-ended iterators.
+//!
+//! This crate provides an _extension trait_ to standard [`Iterator`] in order to lift the
+//! [`Peekable`] abstraction over types implementing [`DoubleEndedIterator`].
+//!
+//! # Basic usage
+//!
+//! ```
+//! use double_ended_peekable::DoubleEndedPeekableExt;
+//!
+//! // Now you can use `iter.double_ended_peekable()`
+//! let mut iter = [1, 2, 3, 4].into_iter().double_ended_peekable();
+//! // Same abstractions of `Peekable`
+//! assert_eq!(iter.peek(), Some(&1));
+//! // Additional `*_back*` methods
+//! assert_eq!(iter.peek_back(), Some(&4));
+//! // It implements `Iterator`
+//! assert_eq!(iter.next(), Some(1));
+//! // And also `DoubleEndedIterator` when possible
+//! assert_eq!(iter.next_back(), Some(4));
+//! // Additional methods for both front and back items
+//! assert_eq!(iter.next_front_back_if_eq(&2, &3), Some((2, 3)));
+//! ```
+//!
+//! Check [`DoubleEndedPeekable`] documentation for additional information.
+//!
+//! # Rationale
+//!
+//! It is possible to use [`Peekable`] on double-ended iterators using `.rev().peekable()`:
+//!
+//! ```
+//! let mut iter = [1, 2, 3].into_iter().rev().peekable();
+//! // No problem!
+//! assert_eq!(iter.peek(), Some(&3));
+//! ````
+//!
+//! However, using `.by_ref().rev().peekable()` _on the fly_ is a footgun:
+//! ```should_panic
+//! let mut iter = [1, 2, 3, 4].into_iter().peekable();
+//! assert_eq!(iter.peek(), Some(&1));
+//! assert_eq!(iter.by_ref().rev().peekable().peek(), Some(&4));
+//! assert_eq!(iter.next(), Some(1));
+//!
+//! // Dang! This fails: iter.next_back() == Some(3)
+//! assert_eq!(iter.next_back(), Some(4));
+//! ```
+//!
+//! The reason this happen is simply because [`Peekable`] saves the next item of the iterator
+//! internally, therefore creating a _rev-peekable_ iterator on the fly is risky because there is a
+//! good chance a peeked element is going to be accidentally lost.
+//!
+//! This tiny crate a simple but powerful abstraction that is hard to misuse.
+//!
+//! [`Peekable`]: core::iter::Peekable
+
 #![cfg_attr(not(test), no_std)]
 
 #[cfg(test)]
