@@ -90,6 +90,12 @@ where
     }
 }
 
+/// An advanced version of [`Peekable`] that works well with double-ended iterators.
+///
+/// This `struct` is created by the [`double_ended_peekable`] method on [`DoubleEndedPeekableExt`].
+///
+/// [`Peekable`]: core::iter::Peekable
+/// [`double_ended_peekable`]: DoubleEndedPeekableExt::double_ended_peekable
 pub struct DoubleEndedPeekable<I: Iterator> {
     iter: I,
     front: Option<Option<<I as Iterator>::Item>>,
@@ -97,6 +103,11 @@ pub struct DoubleEndedPeekable<I: Iterator> {
 }
 
 impl<I: Iterator> DoubleEndedPeekable<I> {
+    /// Returns a reference to the next() value without advancing the iterator.
+    ///
+    /// See [`Peekable::peek`] for more information.
+    ///
+    /// [`Peekable::peek`]: core::iter::Peekable::peek
     #[inline]
     pub fn peek(&mut self) -> Option<&I::Item> {
         self.front
@@ -105,6 +116,11 @@ impl<I: Iterator> DoubleEndedPeekable<I> {
             .or_else(|| self.back.as_ref().and_then(Option::as_ref))
     }
 
+    /// Returns a mutable reference to the next() value without advancing the iterator.
+    ///
+    /// See [`Peekable::peek_mut`] for more information.
+    ///
+    /// [`Peekable::peek_mut`]: core::iter::Peekable::peek_mut
     #[inline]
     pub fn peek_mut(&mut self) -> Option<&mut I::Item> {
         self.front
@@ -113,6 +129,11 @@ impl<I: Iterator> DoubleEndedPeekable<I> {
             .or_else(|| self.back.as_mut().and_then(Option::as_mut))
     }
 
+    /// Consume and return the next value of this iterator if a condition is true.
+    ///
+    /// See [`Peekable::next_if`] for more information.
+    ///
+    /// [`Peekable::next_if`]: core::iter::Peekable::next_if
     #[inline]
     pub fn next_if(&mut self, func: impl FnOnce(&I::Item) -> bool) -> Option<I::Item> {
         match self.next() {
@@ -125,6 +146,11 @@ impl<I: Iterator> DoubleEndedPeekable<I> {
         }
     }
 
+    /// Consume and return the next item if it is equal to `expected`.
+    ///
+    /// See [`Peekable::next_if_eq`] for more information.
+    ///
+    /// [`Peekable::next_if_eq`]: core::iter::Peekable::next_if
     #[inline]
     pub fn next_if_eq<T>(&mut self, expected: &T) -> Option<I::Item>
     where
@@ -136,6 +162,44 @@ impl<I: Iterator> DoubleEndedPeekable<I> {
 }
 
 impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
+    /// Returns a reference to the next_back() value without advancing the _back_ of the iterator.
+    ///
+    /// Like [`next_back`], if there is a value, it is wrapped in a `Some(T)`.
+    /// But if the iteration is over, `None` is returned.
+    ///
+    /// [`next_back`]: DoubleEndedIterator::next_back
+    ///
+    /// Because `peek_back()` returns a reference, and many iterators iterate over references,
+    /// there can be a possibly confusing situation where the return value is a double reference.
+    /// You can see this effect in the examples below.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use double_ended_peekable::DoubleEndedPeekableExt;
+    ///
+    /// let xs = [1, 2, 3];
+    ///
+    /// let mut iter = xs.into_iter().double_ended_peekable();
+    ///
+    /// // peek_back() lets us see into the past of the future
+    /// assert_eq!(iter.peek_back(), Some(&3));
+    /// assert_eq!(iter.next_back(), Some(3));
+    ///
+    /// assert_eq!(iter.next_back(), Some(2));
+    ///
+    /// // The iterator does not advance even if we `peek_back` multiple times
+    /// assert_eq!(iter.peek_back(), Some(&1));
+    /// assert_eq!(iter.peek_back(), Some(&1));
+    ///
+    /// assert_eq!(iter.next_back(), Some(1));
+    ///
+    /// // After the iterator is finished, so is `peek_back()`
+    /// assert_eq!(iter.peek_back(), None);
+    /// assert_eq!(iter.next_back(), None);
+    /// ```
     #[inline]
     pub fn peek_back(&mut self) -> Option<&I::Item> {
         self.back
@@ -144,6 +208,42 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
             .or_else(|| self.front.as_ref().and_then(Option::as_ref))
     }
 
+    /// Returns a mutable reference to the next_back() value without advancing the _back_ of the
+    /// iterator.
+    ///
+    /// Like [`next_back`], if there is a value, it is wrapped in a `Some(T)`. But if the iteration
+    /// is over, `None` is returned.
+    ///
+    /// Because `peek_back_mut()` returns a reference, and many iterators iterate over references,
+    /// there can be a possibly confusing situation where the return value is a double reference.
+    /// You can see this effect in the examples below.
+    ///
+    /// [`next_back`]: DoubleEndedIterator::next_back
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use double_ended_peekable::DoubleEndedPeekableExt;
+    ///
+    /// let mut iter = [1, 2, 3].into_iter().double_ended_peekable();
+    ///
+    /// // Like with `peek_back()`, we can see into the past of the future without advancing the
+    /// // iterator.
+    /// assert_eq!(iter.peek_back_mut(), Some(&mut 3));
+    /// assert_eq!(iter.peek_back_mut(), Some(&mut 3));
+    /// assert_eq!(iter.next_back(), Some(3));
+    ///
+    /// // Peek into the _back_ of the iterator and set the value behind the mutable reference.
+    /// if let Some(p) = iter.peek_back_mut() {
+    ///     assert_eq!(*p, 2);
+    ///     *p = 5;
+    /// }
+    ///
+    /// // The value we put in reappears as the iterator continues.
+    /// assert_eq!(iter.collect::<Vec<_>>(), vec![1, 5]);
+    /// ```
     #[inline]
     pub fn peek_back_mut(&mut self) -> Option<&mut I::Item> {
         self.back
@@ -152,6 +252,36 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
             .or_else(|| self.front.as_mut().and_then(Option::as_mut))
     }
 
+    /// Consume and return the _next back_ value of this iterator if a condition is true.
+    ///
+    /// If `func` returns `true` for the _next back_ value of this iterator, consume and return it.
+    /// Otherwise, return `None`.
+    ///
+    /// # Examples
+    /// Consume a number if it's equal to 4.
+    /// ```
+    /// use double_ended_peekable::DoubleEndedPeekableExt;
+    ///
+    /// let mut iter = (0..5).double_ended_peekable();
+    /// // The last item of the iterator is 4; consume it.
+    /// assert_eq!(iter.next_back_if(|&x| x == 4), Some(4));
+    /// // The _next back_ item returned is now 3, so `consume` will return `false`.
+    /// assert_eq!(iter.next_back_if(|&x| x == 4), None);
+    /// // `next_back_if` saves the value of the _next back_ item if it was not equal to
+    /// // `expected`.
+    /// assert_eq!(iter.next_back(), Some(3));
+    /// ```
+    ///
+    /// Consume any number greater than 10.
+    /// ```
+    /// use double_ended_peekable::DoubleEndedPeekableExt;
+    ///
+    /// let mut iter = (1..20).double_ended_peekable();
+    /// // Consume all numbers greater than 10
+    /// while iter.next_back_if(|&x| x > 10).is_some() {}
+    /// // The _next _back_ value returned will be 10
+    /// assert_eq!(iter.next_back(), Some(10));
+    /// ```
     #[inline]
     pub fn next_back_if(&mut self, func: impl FnOnce(&I::Item) -> bool) -> Option<I::Item> {
         match self.next_back() {
@@ -164,6 +294,21 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
         }
     }
 
+    /// Consume and return the _next back_ item if it is equal to `expected`.
+    ///
+    /// # Example
+    /// Consume a number if it's equal to 4.
+    /// ```
+    /// use double_ended_peekable::DoubleEndedPeekableExt;
+    ///
+    /// let mut iter = (0..5).double_ended_peekable();
+    /// // The first item of the iterator is 4; consume it.
+    /// assert_eq!(iter.next_back_if_eq(&4), Some(4));
+    /// // The next item returned is now 3, so `consume` will return `false`.
+    /// assert_eq!(iter.next_back_if_eq(&4), None);
+    /// // `next_if_eq` saves the value of the _next back_ item if it was not equal to `expected`.
+    /// assert_eq!(iter.next_back(), Some(3));
+    /// ```
     #[inline]
     pub fn next_back_if_eq<T>(&mut self, expected: &T) -> Option<I::Item>
     where
@@ -173,6 +318,39 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
         self.next_back_if(|item| item == expected)
     }
 
+    /// Consume and return the _front_ and _back_ elements of this iterator if a condition is true.
+    ///
+    /// If `func` returns `true` given the references to the _front_ and _back_ elements of this
+    /// iterator, consume and return it. Otherwise, return `None`.
+    ///
+    /// If there is only one element remaining, return `None`;
+    ///
+    /// # Examples
+    /// Consume a pair of numbers if the first is 0 and the second is 4.
+    /// ```
+    /// use double_ended_peekable::DoubleEndedPeekableExt;
+    ///
+    /// let mut iter = (0..5).double_ended_peekable();
+    /// // The first item of the iterator is 0 and the last is 4; consume it.
+    /// assert_eq!(iter.next_front_back_if(|&a, &b| a == 0 && b == 4), Some((0, 4)));
+    /// // The pair returned is now `(1, 3)`, so `consume` will return `false`.
+    /// assert_eq!(iter.next_front_back_if(|&a, &b| a == 0 && b == 4), None);
+    /// // `next_front_back_if` saves the both the _front_ and the _back_ values if the function
+    /// // returned `false`.
+    /// assert_eq!(iter.next(), Some(1));
+    /// assert_eq!(iter.next_back(), Some(3));
+    /// ```
+    ///
+    /// Consume any number greater than 10, in pairs.
+    /// ```
+    /// use double_ended_peekable::DoubleEndedPeekableExt;
+    ///
+    /// let mut iter = [12, 11, 10, 9, 10, 11, 12, 13].into_iter().double_ended_peekable();
+    /// // Consume all numbers greater than 10, in pairs
+    /// while iter.next_front_back_if(|&a, &b| a > 10 && b > 10).is_some() {}
+    /// // The remaining elements
+    /// assert_eq!(iter.collect::<Vec<_>>(), [10, 9, 10, 11]);
+    /// ```
     #[inline]
     pub fn next_front_back_if(
         &mut self,
@@ -190,6 +368,20 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
         }
     }
 
+    /// Consume and return the _front_ and _back_ elements of this iterator if they are equal to
+    /// the expected values.
+    ///
+    /// # Example
+    /// Consume any number if they are 10 and 15, respectively.
+    /// ```
+    /// use double_ended_peekable::DoubleEndedPeekableExt;
+    ///
+    /// let mut iter = [10, 10, 9, 15].into_iter().double_ended_peekable();
+    /// // The first and the last items of the iterator are 10 and 15; consume it.
+    /// while iter.next_front_back_if_eq(&10, &15).is_some() {}
+    /// // The remaining elements
+    /// assert_eq!(iter.collect::<Vec<_>>(), [10, 9]);
+    /// ```
     #[inline]
     pub fn next_front_back_if_eq<T>(
         &mut self,
