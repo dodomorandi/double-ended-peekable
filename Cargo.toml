@@ -1,6 +1,6 @@
 [package]
 name = "double-ended-peekable"
-version = "0.0.2"
+version = "0.1.0-alpha.1"
 categories = ["algorithms", "no-std::no-alloc", "rust-patterns"]
 edition = "2021"
 license = "MIT"
