@@ -49,7 +49,7 @@
 //! internally, therefore creating a _rev-peekable_ iterator on the fly is risky because there is a
 //! good chance a peeked element is going to be accidentally lost.
 //!
-//! This tiny crate a simple but powerful abstraction that is hard to misuse.
+//! This tiny crate exposes a simple but powerful abstraction that is hard to misuse.
 //!
 //! [`Peekable`]: core::iter::Peekable
 
@@ -103,7 +103,7 @@ pub struct DoubleEndedPeekable<I: Iterator> {
 }
 
 impl<I: Iterator> DoubleEndedPeekable<I> {
-    /// Returns a reference to the next() value without advancing the iterator.
+    /// Returns a reference to the `next()` value without advancing the iterator.
     ///
     /// See [`Peekable::peek`] for more information.
     ///
@@ -116,7 +116,7 @@ impl<I: Iterator> DoubleEndedPeekable<I> {
             .or_else(|| self.back.as_ref().and_then(Option::as_ref))
     }
 
-    /// Returns a mutable reference to the next() value without advancing the iterator.
+    /// Returns a mutable reference to the `next()` value without advancing the iterator.
     ///
     /// See [`Peekable::peek_mut`] for more information.
     ///
@@ -162,7 +162,8 @@ impl<I: Iterator> DoubleEndedPeekable<I> {
 }
 
 impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
-    /// Returns a reference to the next_back() value without advancing the _back_ of the iterator.
+    /// Returns a reference to the `next_back()` value without advancing the _back_ of the
+    /// iterator.
     ///
     /// Like [`next_back`], if there is a value, it is wrapped in a `Some(T)`.
     /// But if the iteration is over, `None` is returned.
@@ -182,19 +183,19 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
     ///
     /// let xs = [1, 2, 3];
     ///
-    /// let mut iter = xs.into_iter().double_ended_peekable();
+    /// let mut iter = xs.iter().double_ended_peekable();
     ///
     /// // peek_back() lets us see into the past of the future
-    /// assert_eq!(iter.peek_back(), Some(&3));
-    /// assert_eq!(iter.next_back(), Some(3));
+    /// assert_eq!(iter.peek_back(), Some(&&3));
+    /// assert_eq!(iter.next_back(), Some(&3));
     ///
-    /// assert_eq!(iter.next_back(), Some(2));
+    /// assert_eq!(iter.next_back(), Some(&2));
     ///
     /// // The iterator does not advance even if we `peek_back` multiple times
-    /// assert_eq!(iter.peek_back(), Some(&1));
-    /// assert_eq!(iter.peek_back(), Some(&1));
+    /// assert_eq!(iter.peek_back(), Some(&&1));
+    /// assert_eq!(iter.peek_back(), Some(&&1));
     ///
-    /// assert_eq!(iter.next_back(), Some(1));
+    /// assert_eq!(iter.next_back(), Some(&1));
     ///
     /// // After the iterator is finished, so is `peek_back()`
     /// assert_eq!(iter.peek_back(), None);
@@ -208,7 +209,7 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
             .or_else(|| self.front.as_ref().and_then(Option::as_ref))
     }
 
-    /// Returns a mutable reference to the next_back() value without advancing the _back_ of the
+    /// Returns a mutable reference to the `next_back()` value without advancing the _back_ of the
     /// iterator.
     ///
     /// Like [`next_back`], if there is a value, it is wrapped in a `Some(T)`. But if the iteration
@@ -227,22 +228,23 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
     /// ```
     /// use double_ended_peekable::DoubleEndedPeekableExt;
     ///
-    /// let mut iter = [1, 2, 3].into_iter().double_ended_peekable();
+    /// let mut data = [1, 2, 3];
+    /// let mut iter = data.iter().double_ended_peekable();
     ///
     /// // Like with `peek_back()`, we can see into the past of the future without advancing the
     /// // iterator.
-    /// assert_eq!(iter.peek_back_mut(), Some(&mut 3));
-    /// assert_eq!(iter.peek_back_mut(), Some(&mut 3));
-    /// assert_eq!(iter.next_back(), Some(3));
+    /// assert_eq!(iter.peek_back_mut(), Some(&mut &3));
+    /// assert_eq!(iter.peek_back_mut(), Some(&mut &3));
+    /// assert_eq!(iter.next_back(), Some(&3));
     ///
     /// // Peek into the _back_ of the iterator and set the value behind the mutable reference.
     /// if let Some(p) = iter.peek_back_mut() {
-    ///     assert_eq!(*p, 2);
-    ///     *p = 5;
+    ///     assert_eq!(**p, 2);
+    ///     *p = &5;
     /// }
     ///
     /// // The value we put in reappears as the iterator continues.
-    /// assert_eq!(iter.collect::<Vec<_>>(), vec![1, 5]);
+    /// assert_eq!(iter.collect::<Vec<_>>(), vec![&1, &5]);
     /// ```
     #[inline]
     pub fn peek_back_mut(&mut self) -> Option<&mut I::Item> {
@@ -296,7 +298,7 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
 
     /// Consume and return the _next back_ item if it is equal to `expected`.
     ///
-    /// # Example
+    /// # Examples
     /// Consume a number if it's equal to 4.
     /// ```
     /// use double_ended_peekable::DoubleEndedPeekableExt;
@@ -371,7 +373,7 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
     /// Consume and return the _front_ and _back_ elements of this iterator if they are equal to
     /// the expected values.
     ///
-    /// # Example
+    /// # Examples
     /// Consume any number if they are 10 and 15, respectively.
     /// ```
     /// use double_ended_peekable::DoubleEndedPeekableExt;
