@@ -537,9 +537,9 @@ fn debug() {
     assert_eq!(iter.peek_back(), Some(&3));
 
     assert_eq!(
-        format!("{:?}", iter),
+        format!("{iter:?}"),
         "DoubleEndedPeekable { iter: IntoIter([2]), front: Some(Some(1)), back: Some(Some(3)) }",
-    )
+    );
 }
 
 #[test]
@@ -556,7 +556,7 @@ fn partial_eq() {
             front: Some(Some(1)),
             back: Some(Some(4))
         },
-    )
+    );
 }
 
 #[test]
@@ -576,5 +576,5 @@ fn hash() {
     Some(Some(4)).hash(&mut hasher);
     let expected_hash = hasher.finish();
 
-    assert_eq!(hash, expected_hash)
+    assert_eq!(hash, expected_hash);
 }

@@ -162,7 +162,7 @@ impl<I: Iterator> DoubleEndedPeekable<I> {
 }
 
 impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
-    /// Returns a reference to the next_back() value without advancing the _back_ of the iterator.
+    /// Returns a reference to the `next_back()` value without advancing the _back_ of the iterator.
     ///
     /// Like [`next_back`], if there is a value, it is wrapped in a `Some(T)`.
     /// But if the iteration is over, `None` is returned.
@@ -208,7 +208,7 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
             .or_else(|| self.front.as_ref().and_then(Option::as_ref))
     }
 
-    /// Returns a mutable reference to the next_back() value without advancing the _back_ of the
+    /// Returns a mutable reference to the `next_back()` value without advancing the _back_ of the
     /// iterator.
     ///
     /// Like [`next_back`], if there is a value, it is wrapped in a `Some(T)`. But if the iteration
