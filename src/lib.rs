@@ -507,6 +507,7 @@ where
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(kani, derive(kani::Arbitrary))]
 enum MaybePeeked<T> {
     #[default]
     Unpeeked,
@@ -558,4 +559,11 @@ impl<T> MaybePeeked<T> {
             MaybePeeked::Peeked(Some(peeked)) => Some(peeked),
         }
     }
+}
+
+#[cfg(kani)]
+#[kani::proof]
+fn maybe_peeked_get_peeked_or_insert_with() {
+    let mut maybe_peeked: MaybePeeked<u32> = kani::any();
+    let _ = maybe_peeked.get_peeked_or_insert_with(|| kani::any());
 }
