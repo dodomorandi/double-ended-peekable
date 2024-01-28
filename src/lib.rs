@@ -473,13 +473,6 @@ where
     }
 }
 
-impl<I> Copy for DoubleEndedPeekable<I>
-where
-    I: Iterator + Copy,
-    I::Item: Copy,
-{
-}
-
 impl<I> PartialEq for DoubleEndedPeekable<I>
 where
     I: Iterator + PartialEq,
