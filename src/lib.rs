@@ -45,11 +45,11 @@
 //! assert_eq!(iter.next_back(), Some(4));
 //! ```
 //!
-//! The reason this happen is simply because [`Peekable`] saves the next item of the iterator
-//! internally, therefore creating a _rev-peekable_ iterator on the fly is risky because there is a
-//! good chance a peeked element is going to be accidentally lost.
+//! The assertion fails just because [`Peekable`] saves the next item of the iterator internally.
+//! Therefore, creating a _rev-peekable_ iterator on the fly is risky because there is a good
+//! chance a peeked element is going to be accidentally lost.
 //!
-//! This tiny crate a simple but powerful abstraction that is hard to misuse.
+//! This tiny crate exposes a simple but powerful abstraction that is hard to misuse.
 //!
 //! [`Peekable`]: core::iter::Peekable
 
@@ -105,7 +105,7 @@ pub struct DoubleEndedPeekable<I: Iterator> {
 }
 
 impl<I: Iterator> DoubleEndedPeekable<I> {
-    /// Returns a reference to the next() value without advancing the iterator.
+    /// Returns a reference to the `next()` value without advancing the iterator.
     ///
     /// See [`Peekable::peek`] for more information.
     ///
@@ -118,7 +118,7 @@ impl<I: Iterator> DoubleEndedPeekable<I> {
             .or_else(|| self.back.peeked_value_ref())
     }
 
-    /// Returns a mutable reference to the next() value without advancing the iterator.
+    /// Returns a mutable reference to the `next()` value without advancing the iterator.
     ///
     /// See [`Peekable::peek_mut`] for more information.
     ///
@@ -131,7 +131,7 @@ impl<I: Iterator> DoubleEndedPeekable<I> {
             .or_else(|| self.back.peeked_value_mut())
     }
 
-    /// Consume and return the next value of this iterator if a condition is true.
+    /// Consumes and returns the next value of this iterator if a condition is true.
     ///
     /// See [`Peekable::next_if`] for more information.
     ///
@@ -148,7 +148,7 @@ impl<I: Iterator> DoubleEndedPeekable<I> {
         }
     }
 
-    /// Consume and return the next item if it is equal to `expected`.
+    /// Consumes and returns the next item if it is equal to `expected`.
     ///
     /// See [`Peekable::next_if_eq`] for more information.
     ///
@@ -254,10 +254,10 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
             .or_else(|| self.front.peeked_value_mut())
     }
 
-    /// Consume and return the _next back_ value of this iterator if a condition is true.
+    /// Consumes and returns the _next back_ value of this iterator if a condition is true.
     ///
-    /// If `func` returns `true` for the _next back_ value of this iterator, consume and return it.
-    /// Otherwise, return `None`.
+    /// If `func` returns `true` for the _next back_ value of this iterator, it consumes the
+    /// element and returns it. Otherwise, it returns `None`.
     ///
     /// # Examples
     /// Consume a number if it's equal to 4.
@@ -296,7 +296,7 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
         }
     }
 
-    /// Consume and return the _next back_ item if it is equal to `expected`.
+    /// Consumes and returns the _next back_ item if it is equal to `expected`.
     ///
     /// # Example
     /// Consume a number if it's equal to 4.
@@ -320,12 +320,12 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
         self.next_back_if(|item| item == expected)
     }
 
-    /// Consume and return the _front_ and _back_ elements of this iterator if a condition is true.
+    /// Consumes and returns the _front_ and _back_ elements of this iterator if a condition is true.
     ///
     /// If `func` returns `true` given the references to the _front_ and _back_ elements of this
-    /// iterator, consume and return it. Otherwise, return `None`.
+    /// iterator, it consumes the elements and returns them. Otherwise, it returns `None`.
     ///
-    /// If there is only one element remaining, return `None`;
+    /// If there is only one element left, it returns `None`;
     ///
     /// # Examples
     /// Consume a pair of numbers if the first is 0 and the second is 4.
@@ -370,7 +370,7 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
         }
     }
 
-    /// Consume and return the _front_ and _back_ elements of this iterator if they are equal to
+    /// Consumes and returns the _front_ and _back_ elements of this iterator if they are equal to
     /// the expected values.
     ///
     /// # Example
