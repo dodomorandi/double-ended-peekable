@@ -61,6 +61,8 @@ mod tests;
 use core::{
     fmt::{self, Debug},
     hash::{Hash, Hasher},
+    hint::unreachable_unchecked,
+    mem,
 };
 
 /// An _extension trait_ to create [`DoubleEndedPeekable`].
@@ -84,8 +86,8 @@ where
     fn double_ended_peekable(self) -> DoubleEndedPeekable<I> {
         DoubleEndedPeekable {
             iter: self,
-            front: None,
-            back: None,
+            front: MaybePeeked::Unpeeked,
+            back: MaybePeeked::Unpeeked,
         }
     }
 }
@@ -98,8 +100,8 @@ where
 /// [`double_ended_peekable`]: DoubleEndedPeekableExt::double_ended_peekable
 pub struct DoubleEndedPeekable<I: Iterator> {
     iter: I,
-    front: Option<Option<<I as Iterator>::Item>>,
-    back: Option<Option<<I as Iterator>::Item>>,
+    front: MaybePeeked<<I as Iterator>::Item>,
+    back: MaybePeeked<<I as Iterator>::Item>,
 }
 
 impl<I: Iterator> DoubleEndedPeekable<I> {
@@ -111,9 +113,9 @@ impl<I: Iterator> DoubleEndedPeekable<I> {
     #[inline]
     pub fn peek(&mut self) -> Option<&I::Item> {
         self.front
-            .get_or_insert_with(|| self.iter.next())
+            .get_peeked_or_insert_with(|| self.iter.next())
             .as_ref()
-            .or_else(|| self.back.as_ref().and_then(Option::as_ref))
+            .or_else(|| self.back.peeked_value_ref())
     }
 
     /// Returns a mutable reference to the next() value without advancing the iterator.
@@ -124,9 +126,9 @@ impl<I: Iterator> DoubleEndedPeekable<I> {
     #[inline]
     pub fn peek_mut(&mut self) -> Option<&mut I::Item> {
         self.front
-            .get_or_insert_with(|| self.iter.next())
+            .get_peeked_or_insert_with(|| self.iter.next())
             .as_mut()
-            .or_else(|| self.back.as_mut().and_then(Option::as_mut))
+            .or_else(|| self.back.peeked_value_mut())
     }
 
     /// Consume and return the next value of this iterator if a condition is true.
@@ -139,8 +141,8 @@ impl<I: Iterator> DoubleEndedPeekable<I> {
         match self.next() {
             Some(item) if func(&item) => Some(item),
             other => {
-                debug_assert!(self.front.is_none());
-                self.front = Some(other);
+                debug_assert!(self.front.is_unpeeked());
+                self.front = MaybePeeked::Peeked(other);
                 None
             }
         }
@@ -203,9 +205,9 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
     #[inline]
     pub fn peek_back(&mut self) -> Option<&I::Item> {
         self.back
-            .get_or_insert_with(|| self.iter.next_back())
+            .get_peeked_or_insert_with(|| self.iter.next_back())
             .as_ref()
-            .or_else(|| self.front.as_ref().and_then(Option::as_ref))
+            .or_else(|| self.front.peeked_value_ref())
     }
 
     /// Returns a mutable reference to the `next_back()` value without advancing the _back_ of the
@@ -247,9 +249,9 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
     #[inline]
     pub fn peek_back_mut(&mut self) -> Option<&mut I::Item> {
         self.back
-            .get_or_insert_with(|| self.iter.next_back())
+            .get_peeked_or_insert_with(|| self.iter.next_back())
             .as_mut()
-            .or_else(|| self.front.as_mut().and_then(Option::as_mut))
+            .or_else(|| self.front.peeked_value_mut())
     }
 
     /// Consume and return the _next back_ value of this iterator if a condition is true.
@@ -287,8 +289,8 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
         match self.next_back() {
             Some(item) if func(&item) => Some(item),
             other => {
-                debug_assert!(self.back.is_none());
-                self.back = Some(other);
+                debug_assert!(self.back.is_unpeeked());
+                self.back = MaybePeeked::Peeked(other);
                 None
             }
         }
@@ -359,10 +361,10 @@ impl<I: DoubleEndedIterator> DoubleEndedPeekable<I> {
         match (self.next(), self.next_back()) {
             (Some(front), Some(back)) if func(&front, &back) => Some((front, back)),
             (front, back) => {
-                debug_assert!(self.front.is_none());
-                debug_assert!(self.back.is_none());
-                self.front = Some(front);
-                self.back = Some(back);
+                debug_assert!(self.front.is_unpeeked());
+                debug_assert!(self.back.is_unpeeked());
+                self.front = MaybePeeked::Peeked(front);
+                self.back = MaybePeeked::Peeked(back);
                 None
             }
         }
@@ -405,11 +407,11 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         match self.front.take() {
-            Some(out @ Some(_)) => out,
-            Some(None) => self.back.take().flatten(),
-            None => match self.iter.next() {
+            MaybePeeked::Peeked(out @ Some(_)) => out,
+            MaybePeeked::Peeked(None) => self.back.take().into_peeked_value(),
+            MaybePeeked::Unpeeked => match self.iter.next() {
                 item @ Some(_) => item,
-                None => self.back.take().flatten(),
+                None => self.back.take().into_peeked_value(),
             },
         }
     }
@@ -418,9 +420,9 @@ where
     fn size_hint(&self) -> (usize, Option<usize>) {
         let (lower, upper) = self.iter.size_hint();
         let additional = match (&self.front, &self.back) {
-            (Some(_), Some(_)) => 2,
-            (Some(_), _) | (_, Some(_)) => 1,
-            (None, None) => 0,
+            (MaybePeeked::Peeked(_), MaybePeeked::Peeked(_)) => 2,
+            (MaybePeeked::Peeked(_), _) | (_, MaybePeeked::Peeked(_)) => 1,
+            (MaybePeeked::Unpeeked, MaybePeeked::Unpeeked) => 0,
         };
 
         (lower + additional, upper.map(|upper| upper + additional))
@@ -434,11 +436,11 @@ where
     #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
         match self.back.take() {
-            Some(out @ Some(_)) => out,
-            Some(None) => self.front.take().flatten(),
-            None => match self.iter.next_back() {
+            MaybePeeked::Peeked(out @ Some(_)) => out,
+            MaybePeeked::Peeked(None) => self.front.take().into_peeked_value(),
+            MaybePeeked::Unpeeked => match self.iter.next_back() {
                 out @ Some(_) => out,
-                None => self.front.take().flatten(),
+                None => self.front.take().into_peeked_value(),
             },
         }
     }
@@ -501,5 +503,59 @@ where
         self.iter.hash(state);
         self.front.hash(state);
         self.back.hash(state);
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum MaybePeeked<T> {
+    #[default]
+    Unpeeked,
+    Peeked(Option<T>),
+}
+
+impl<T> MaybePeeked<T> {
+    fn get_peeked_or_insert_with<F>(&mut self, f: F) -> &mut Option<T>
+    where
+        F: FnOnce() -> Option<T>,
+    {
+        if let MaybePeeked::Unpeeked = self {
+            *self = MaybePeeked::Peeked(f());
+        }
+
+        let MaybePeeked::Peeked(peeked) = self else {
+            // SAFETY: it cannot be `Unpeeked` because that case has been just replaced with
+            // `Peeked`, and we only have two possible states.
+            unsafe { unreachable_unchecked() }
+        };
+        peeked
+    }
+
+    const fn peeked_value_ref(&self) -> Option<&T> {
+        match self {
+            MaybePeeked::Unpeeked | MaybePeeked::Peeked(None) => None,
+            MaybePeeked::Peeked(Some(peeked)) => Some(peeked),
+        }
+    }
+
+    fn peeked_value_mut(&mut self) -> Option<&mut T> {
+        match self {
+            MaybePeeked::Unpeeked | MaybePeeked::Peeked(None) => None,
+            MaybePeeked::Peeked(Some(peeked)) => Some(peeked),
+        }
+    }
+
+    const fn is_unpeeked(&self) -> bool {
+        matches!(self, MaybePeeked::Unpeeked)
+    }
+
+    fn take(&mut self) -> Self {
+        mem::replace(self, MaybePeeked::Unpeeked)
+    }
+
+    fn into_peeked_value(self) -> Option<T> {
+        match self {
+            MaybePeeked::Unpeeked | MaybePeeked::Peeked(None) => None,
+            MaybePeeked::Peeked(Some(peeked)) => Some(peeked),
+        }
     }
 }
